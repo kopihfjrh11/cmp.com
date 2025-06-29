@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>СМП — Социальная сеть студентов-медиков</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom right, #bfdbfe, #ffffff, #dbeafe);
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+
+    header {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1e3a8a;
+      text-align: center;
+      margin: 40px 0 20px;
+      animation: fadeDown 0.8s ease-out;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+      backdrop-filter: blur(10px);
+      animation: scaleIn 0.6s ease-out;
+    }
+
+    .card h2 {
+      text-align: center;
+      color: #1d4ed8;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-size: 14px;
+      color: #2563eb;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      background: #eff6ff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .input-group i {
+      color: #60a5fa;
+      margin-right: 10px;
+    }
+
+    .input-group input {
+      border: none;
+      outline: none;
+      background: transparent;
+      flex: 1;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      margin-top: 20px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #1e40af;
+    }
+
+    .toggle {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .toggle a {
+      color: #2563eb;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Стили для сообщений об ошибках и успехе */
+    #msg-box {
+      position: fixed;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #2563eb;
+      border: 2px solid #2563eb;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      z-index: 9999;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>СМП — Социальная сеть студентов-медиков</header>
+
+  <div class="card">
+    <h2 id="form-title">Регистрация в СМП</h2>
+
+    <form id="auth-form" autocomplete="off">
+      <div id="name-group">
+        <label>Имя</label>
+        <div class="input-group">
+          <i class="fa-solid fa-signature"></i>
+          <input type="text" placeholder="Ваше имя" id="name-input">
+        </div>
+      </div>
+
+      <div id="surname-group">
+        <label>Фамилия</label>
+        <div class="input-group">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" placeholder="Ваша фамилия" id="surname-input">
+        </div>
+      </div>
+
+      <label>Пароль</label>
+      <div class="input-group">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" placeholder="Ваш пароль" id="password-input">
+      </div>
+
+      <button type="submit" id="submit-btn"><i class="fa-solid fa-user-shield"></i> Зарегистрироваться</button>
+    </form>
+
+    <div class="toggle">
+      <span id="toggle-text">Уже есть аккаунт? <a id="toggle-link">Войти</a></span>
+    </div>
+  </div>
+
+  <!-- Сообщения об ошибках и успехе -->
+  <div id="msg-box"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = "https://cwqizxpukzetxuzfwtlc.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cWl6eHB1a3pldHh1emZ3dGxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwMTEyODUsImV4cCI6MjA2NTU4NzI4NX0.j6E3Upj6dJZantRZ4ScJO4WxH-GfFaPesN83uDvGi-g";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const formTitle = document.getElementById('form-title');
+    const nameGroup = document.getElementById('name-group');
+    const surnameGroup = document.getElementById('surname-group');
+    const submitBtn = document.getElementById('submit-btn');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = document.getElementById('toggle-link');
+    const form = document.getElementById('auth-form');
+    let isSignup = true;
+
+    function updateForm() {
+      if (isSignup) {
+        formTitle.textContent = 'Регистрация в СМП';
+        nameGroup.style.display = '';
+        surnameGroup.style.display = '';
+        document.getElementById('name-input').value = '';
+        document.getElementById('surname-input').value = '';
+        document.getElementById('password-input').value = '';
+        submitBtn.innerHTML = '<i class="fa-solid fa-user-shield"></i> Зарегистрироваться';
+        toggleText.innerHTML = 'Уже есть аккаунт? <a id="toggle-link">Войти</a>';
+      } else {
+        formTitle.textContent = 'Вход в СМП';
+        nameGroup.style.display = '';
+        surnameGroup.style.display = '';
+        document.getElementById('name-input').value = '';
+        document.getElementById('surname-input').value = '';
+        document.getElementById('password-input').value = '';
+        submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Войти';
+        toggleText.innerHTML = 'Нет аккаунта? <a id="toggle-link">Зарегистрироваться</a>';
+      }
+      document.getElementById('toggle-link').onclick = toggleMode;
+    }
+
+    function toggleMode(e) {
+      e.preventDefault();
+      isSignup = !isSignup;
+      updateForm();
+    }
+
+    document.getElementById('toggle-link').onclick = toggleMode;
+    updateForm();
+
+    // Функция для показа сообщений внутри проекта
+    function showMessage(msg, type = 'info') {
+      let msgBox = document.getElementById('msg-box');
+      if (!msgBox) {
+        msgBox = document.createElement('div');
+        msgBox.id = 'msg-box';
+        msgBox.style.position = 'fixed';
+        msgBox.style.top = '30px';
+        msgBox.style.left = '50%';
+        msgBox.style.transform = 'translateX(-50%)';
+        msgBox.style.background = '#fff';
+        msgBox.style.color = type === 'error' ? '#dc2626' : '#2563eb';
+        msgBox.style.border = type === 'error' ? '2px solid #dc2626' : '2px solid #2563eb';
+        msgBox.style.padding = '14px 28px';
+        msgBox.style.borderRadius = '12px';
+        msgBox.style.fontWeight = '600';
+        msgBox.style.fontSize = '16px';
+        msgBox.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+        msgBox.style.zIndex = '9999';
+        document.body.appendChild(msgBox);
+      }
+      msgBox.textContent = msg;
+      msgBox.style.display = 'block';
+      setTimeout(() => { msgBox.style.display = 'none'; }, 2500);
+    }
+
+    // Обработка отправки формы с Supabase с учётом уникальности пользователя
+    form.onsubmit = async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name-input').value.trim();
+      const surname = document.getElementById('surname-input').value.trim();
+      const password = document.getElementById('password-input').value.trim();
+      if (!name || !surname || !password) {
+        showMessage('Пожалуйста, заполните все поля!', 'error');
+        return;
+      }
+      if (isSignup) {
+        // Проверяем, есть ли уже такой пользователь (имя+фамилия уникальны)
+        const { data: exists, error: existsError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('name', name)
+          .eq('surname', surname)
+          .single();
+        if (exists) {
+          showMessage('Пользователь уже создан, попробуйте другое!', 'error');
+          return;
+        }
+        // Если нет — регистрируем
+        const { data, error } = await supabase.from('users').insert([
+          { name, surname, password }
+        ]).select().single();
+        if (error) {
+          showMessage('Ошибка регистрации: ' + error.message, 'error');
+        } else {
+          // Сохраняем user_id сразу после регистрации
+          if (data && data.id) localStorage.setItem('user_id', data.id);
+          showMessage('Успешная регистрация!', 'info');
+          isSignup = false;
+          updateForm();
+        }
+      } else {
+        // Вход: ищем пользователя по имени, фамилии и паролю
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('name', name)
+          .eq('surname', surname)
+          .eq('password', password)
+          .single();
+        if (data) {
+          // Сохраняем user_id после входа
+          localStorage.setItem('user_id', data.id);
+          showMessage('Вход выполнен!', 'info');
+          setTimeout(() => { window.location.href = 'welcome.html'; }, 1200);
+        } else {
+          showMessage('Неверные данные для входа!', 'error');
+        }
+      }
+    };
+  </script>
+</body>
+</html>

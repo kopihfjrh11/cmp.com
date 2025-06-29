@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пост | СМП</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { margin:0; font-family:'Arial',sans-serif; background:#f0f4ff; }
+    .container { max-width:500px; margin:40px auto 0 auto; background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,0.07); padding:24px 18px; }
+    .post-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .post-header img { width:40px; height:40px; border-radius:50%; }
+    .post-header span { font-weight:bold; }
+    .post-img { width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin-bottom:10px; }
+    .post-text { margin-bottom:10px; font-size:16px; }
+    .post-actions { display:flex; align-items:center; gap:16px; margin-bottom:16px; }
+    .post-actions button { background:none; border:none; cursor:pointer; font-size:16px; }
+    .comments-title { font-weight:bold; margin:18px 0 8px 0; }
+    .comment { margin:10px 0 0 0; padding-left:0; border-left:none; }
+    .comment.reply { margin-left:18px; padding-left:8px; border-left:2px solid #e0e7ef; }
+    .comment-header { display:flex; align-items:center; gap:7px; }
+    .comment-header img { width:26px; height:26px; border-radius:50%; }
+    .comment-header b { font-size:14px; }
+    .comment-header span { font-size:12px; color:#888; }
+    .comment-text { margin:2px 0 2px 0; font-size:15px; }
+    .comment-actions { display:flex; align-items:center; gap:10px; font-size:13px; }
+    .comment-actions button { background:none; border:none; cursor:pointer; }
+    #commentForm { margin-top:16px; }
+    #commentForm textarea { width:100%; margin-bottom:6px; }
+    #commentForm button { background:#2563eb; color:#fff; padding:7px 16px; border-radius:8px; border:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="feed.html" style="color:#2563eb;text-decoration:none;font-size:15px;">&larr; К ленте</a>
+    <div id="post"></div>
+    <div class="comments-title">Комментарии</div>
+    <div id="comments-list"></div>
+    <form id="commentForm">
+      <textarea id="new-comment" placeholder="Ваш комментарий..."></textarea>
+      <input type="hidden" id="parent-comment-id" value="">
+      <button type="submit">Отправить</button>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = "https://cwqizxpukzetxuzfwtlc.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cWl6eHB1a3pldHh1emZ3dGxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwMTEyODUsImV4cCI6MjA2NTU4NzI4NX0.j6E3Upj6dJZantRZ4ScJO4WxH-GfFaPesN83uDvGi-g";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('id');
+    async function getCurrentUser() {
+      const user_id = localStorage.getItem('user_id');
+      if (!user_id) return null;
+      const { data, error } = await supabase.from('users').select('*').eq('id', user_id).single();
+      if (error || !data) return null;
+      return data;
+    }
+    async function loadPost() {
+      const { data: post } = await supabase.from('posts').select('*').eq('id', postId).single();
+      if (!post) return;
+      const postDiv = document.getElementById('post');
+      postDiv.innerHTML = `
+        <div class='post-header'>
+          <img src='${post.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}'>
+          <span>${post.author_name || 'Аноним'}</span>
+        </div>
+        ${post.image_url ? `<img src='${post.image_url}' class='post-img'>` : ''}
+        ${post.text ? `<div class='post-text'>${post.text}</div>` : ''}
+        <div class='post-actions'>
+          <button id='like-btn'><i class='fas fa-heart'></i> Лайк</button>
+          <span id='likes-count'>${post.likes || 0}</span>
+        </div>
+      `;
+      // Лайк к посту
+      let liked = false;
+      const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+      if (likedPosts.includes(post.id)) {
+        liked = true;
+        postDiv.querySelector('#like-btn').style.color = '#dc2626';
+      }
+      postDiv.querySelector('#like-btn').onclick = async function() {
+        if (liked) return;
+        let likes = (post.likes || 0) + 1;
+        postDiv.querySelector('#likes-count').textContent = likes;
+        postDiv.querySelector('#like-btn').style.color = '#dc2626';
+        liked = true;
+        likedPosts.push(post.id);
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+        await supabase.from('posts').update({ likes }).eq('id', post.id);
+      };
+    }
+    async function loadComments() {
+      const { data: comments } = await supabase.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+      const list = document.getElementById('comments-list');
+      function renderComments(parentId = null, level = 0) {
+        const filtered = comments.filter(c => c.parent_id === parentId);
+        filtered.forEach(c => {
+          const div = document.createElement('div');
+          div.className = 'comment' + (level ? ' reply' : '');
+          // Определяем, кому адресован ответ
+          let replyTo = '';
+          if (c.parent_id) {
+            const parentComment = comments.find(pc => pc.id === c.parent_id);
+            if (parentComment && parentComment.author_name) {
+              replyTo = `<span style='color:#2563eb;font-size:13px;'>@${parentComment.author_name}</span> `;
+            }
+          }
+          // Кнопка-комментарий для вложенных
+          let hasChildren = comments.some(child => child.parent_id === c.id);
+          let toggleBtn = '';
+          if (hasChildren) {
+            toggleBtn = `<button class='toggle-replies-btn' data-id='${c.id}' style='background:none;border:none;color:#888;font-size:14px;cursor:pointer;margin-left:4px;'><i class='fas fa-comment'></i></button>`;
+          }
+          div.innerHTML = `
+            <div class='comment-header'>
+              <img src='${c.avatar_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}'>
+              <b>${c.author_name || 'Аноним'}</b>
+              <span>${new Date(c.created_at).toLocaleString('ru-RU',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</span>
+              ${toggleBtn}
+            </div>
+            <div class='comment-text'>${replyTo}${c.text}</div>
+            <div class='comment-actions'>
+              <button class='comment-like-btn' data-id='${c.id}' style='color:${(c.likes_users||[]).includes(localStorage.getItem('user_id')) ? '#dc2626' : '#222'}'><i class='fas fa-heart'></i> <span>${c.likes||0}</span></button>
+              <button class='reply-btn' data-id='${c.id}' style='color:#2563eb;'><i class='fas fa-reply'></i> Ответить</button>
+            </div>
+            <div class='children-comments' id='children-${c.id}' style=''></div>
+          `;
+          list.appendChild(div);
+          // Рендерим детей внутрь отдельного контейнера, но по умолчанию скрыто
+          const childrenContainer = div.querySelector(`#children-${c.id}`);
+          if (childrenContainer) {
+            childrenContainer.style.display = 'none';
+            renderComments.call({list: childrenContainer}, c.id, level + 1);
+          }
+        });
+      }
+      list.innerHTML = '';
+      renderComments();
+      // Лайки к комментариям
+      list.querySelectorAll('.comment-like-btn').forEach(btn => {
+        btn.onclick = async function() {
+          const commentId = btn.getAttribute('data-id');
+          const comment = comments.find(c => c.id === commentId);
+          if (!comment) return;
+          let likes = (comment.likes || 0);
+          let likes_users = comment.likes_users || [];
+          const user_id = localStorage.getItem('user_id');
+          if (!user_id || likes_users.includes(user_id)) return;
+          likes++;
+          likes_users.push(user_id);
+          btn.style.color = '#dc2626';
+          btn.querySelector('span').textContent = likes;
+          await supabase.from('comments').update({ likes, likes_users }).eq('id', commentId);
+        };
+      });
+      // Ответ на комментарий
+      list.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.onclick = function() {
+          document.getElementById('parent-comment-id').value = btn.getAttribute('data-id');
+          document.getElementById('new-comment').focus();
+        };
+      });
+      // Кнопка показать/скрыть ответы
+      list.querySelectorAll('.toggle-replies-btn').forEach(btn => {
+        btn.onclick = function() {
+          const commentId = btn.getAttribute('data-id');
+          const children = document.getElementById('children-' + commentId);
+          if (!children) return;
+          if (children.style.display === 'none') {
+            children.style.display = '';
+          } else {
+            children.style.display = 'none';
+          }
+        };
+      });
+    }
+    document.getElementById('commentForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const textarea = document.getElementById('new-comment');
+      const text = textarea.value.trim();
+      if (!text) return;
+      const parent_id = document.getElementById('parent-comment-id').value || null;
+      const user = await getCurrentUser();
+      await supabase.from('comments').insert([{
+        post_id: postId,
+        text,
+        author_name: user ? (user.name + ' ' + user.surname) : 'Аноним',
+        avatar_url: user ? user.avatar_url : '',
+        parent_id
+      }]);
+      textarea.value = '';
+      document.getElementById('parent-comment-id').value = '';
+      loadComments();
+    };
+    loadPost();
+    loadComments();
+  </script>
+</body>
+</html>

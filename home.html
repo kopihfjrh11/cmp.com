@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>СМП — Социальная сеть студентов-медиков</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    
+    * {
+      box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background: #f0f4ff;
+      color: #222;
+      scroll-behavior: smooth;
+    }
+
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1001;
+    }
+    header h1 {
+      font-size: 16px;
+      font-weight: bold;
+      line-height: 1.2;
+      max-width: 70%;
+    }
+    header a {
+      color: white;
+      font-size: 20px;
+    }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -260px;
+      width: 240px;
+      height: 100%;
+      background: #3b82f6;
+      color: white;
+      padding: 20px;
+      transition: left 0.3s ease;
+      z-index: 1000;
+    }
+    .sidebar.active {
+      left: 0;
+    }
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    .sidebar a {
+      display: block;
+      color: white;
+      margin: 10px 0;
+      font-size: 16px;
+      text-decoration: none;
+    }
+    .menu-toggle {
+      font-size: 22px;
+      cursor: pointer;
+    }
+    main {
+      padding: 20px;
+      text-align: center;
+      animation: fadeIn 0.6s ease-in;
+    }
+    main h2 {
+      color: #1e3a8a;
+      font-size: 24px;
+    }
+    /* Спиннер */
+    .spinner {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      border: 4px solid #3b82f6;
+      border-top: 4px solid #e0e7ef;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 18px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Сообщение об ошибке */
+    .error-message {
+      color: crimson;
+      background: #fff0f3;
+      border: 1px solid #ffb3c1;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 18px;
+      display: inline-block;
+      font-size: 1em;
+    }
+    /* Плейсхолдер-аватар (универсальный, на будущее) */
+    .avatar-placeholder {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e0e7ef 60%, #c7d2fe 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 22px;
+      font-weight: bold;
+      border: 2px solid #c7d2fe;
+      margin: 0 auto;
+    }
+    /* Адаптивность */
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 13px;
+        max-width: 60%;
+      }
+      .sidebar {
+        width: 80vw;
+        min-width: 180px;
+        padding: 12px;
+      }
+      main {
+        padding: 10px;
+      }
+      main h2 {
+        font-size: 18px;
+      }
+      .avatar-placeholder {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+      }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <h2>📚 Меню</h2>
+    <a href="home.html">🏠 Главная</a>
+    <a href="messenger.html">💬 Мессенджер</a>
+    <a href="feed.html">📰 Лента</a>
+    <a href="friends.html">👥 Друзья</a>
+  </div>
+
+  <header>
+    <span class="menu-toggle" onclick="toggleSidebar()">
+      <i class="fas fa-bars"></i>
+    </span>
+    <h1>СМП — Социальная сеть студентов-медиков</h1>
+    <a href="account.html"><i class="fas fa-user-circle"></i></a>
+  </header>
+
+  <main>
+    <div id="greeting-spinner" class="spinner" style="display:block;"></div>
+    <div id="greeting" style="font-size:1.2em;color:#1e3a8a;margin-bottom:18px;display:none;"></div>
+    <h2>📢 Главная новость!</h2>
+    <div style="margin-top:18px;font-size:1.1em;color:#555;background:#fff8e1;border-radius:10px;padding:18px 14px;max-width:500px;margin-left:auto;margin-right:auto;box-shadow:0 2px 8px #facc15a0;">
+      <b>Речь от Зияды Кайратовны:</b><br>
+      <span style="color:#b91c1c;">К сожалению, речь пока отсутствует. Следите за обновлениями!</span>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('active');
+    }
+
+    // Приветствие с именем и фамилией пользователя + спиннер + улучшенный вывод ошибок
+    const SUPABASE_URL = "https://cwqizxpukzetxuzfwtlc.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cWl6eHB1a3pldHh1emZ3dGxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwMTEyODUsImV4cCI6MjA2NTU4NzI4NX0.j6E3Upj6dJZantRZ4ScJO4WxH-GfFaPesN83uDvGi-g";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    (async function greetUser() {
+      const greetingDiv = document.getElementById('greeting');
+      const spinner = document.getElementById('greeting-spinner');
+      greetingDiv.style.display = 'none';
+      spinner.style.display = 'block';
+      let errorMsg = '';
+      try {
+        const user_id = localStorage.getItem('user_id');
+        if (!user_id) {
+          errorMsg = 'Не выполнен вход. Пожалуйста, авторизуйтесь.';
+          throw new Error(errorMsg);
+        }
+        const { data, error } = await supabase.from('users').select('name,surname').eq('id', user_id).single();
+        if (error) {
+          errorMsg = 'Ошибка загрузки профиля.';
+          throw new Error(errorMsg);
+        }
+        if (data && data.name) {
+          const greetingText = `Приветствую, ${data.name} ${data.surname || ''}!`;
+          greetingDiv.textContent = greetingText;
+          greetingDiv.style.color = '#1e3a8a';
+          localStorage.setItem('greeting_name', `${data.name} ${data.surname || ''}`);
+        } else {
+          errorMsg = 'Профиль не найден или не заполнено имя.';
+          throw new Error(errorMsg);
+        }
+        greetingDiv.classList.remove('error-message');
+      } catch (e) {
+        greetingDiv.textContent = errorMsg || 'Неизвестная ошибка.';
+        greetingDiv.classList.add('error-message');
+        greetingDiv.style.color = '';
+      } finally {
+        spinner.style.display = 'none';
+        greetingDiv.style.display = 'block';
+      }
+    })();
+  </script>
+</body>
+</html>

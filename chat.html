@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>СМП — Чат</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f6f8fa;
+      color: #222;
+    }
+    .sidebar {
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      width: 210px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 32px 0 0 0;
+      z-index: 100;
+      transition: left 0.2s;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .sidebar h2 {
+      font-size: 1.2em;
+      margin: 0 0 24px 32px;
+      color: #1976d2;
+    }
+    .sidebar a {
+      display: block;
+      padding: 12px 32px;
+      color: #222;
+      text-decoration: none;
+      font-size: 1em;
+      border-left: 4px solid transparent;
+      transition: background 0.15s, border 0.15s;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: #f0f4fa;
+      border-left: 4px solid #1976d2;
+      color: #1976d2;
+    }
+    @media (max-width: 700px) {
+      .sidebar {
+        left: -220px;
+        width: 180px;
+      }
+      .sidebar.active {
+        left: 0;
+      }
+    }
+    header {
+      position: fixed;
+      left: 210px;
+      right: 0;
+      top: 0;
+      height: 56px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      z-index: 101;
+      font-size: 1.1em;
+      font-weight: 500;
+      justify-content: space-between;
+    }
+    .menu-toggle {
+      display: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      margin-right: 16px;
+    }
+    @media (max-width: 700px) {
+      header {
+        left: 0;
+        padding: 0 16px;
+      }
+      .menu-toggle {
+        display: inline-block;
+      }
+    }
+    .main-content {
+      margin-left: 210px;
+      margin-top: 70px;
+      padding: 24px 24px 24px 24px;
+      max-width: 700px;
+    }
+    @media (max-width: 700px) {
+      .main-content {
+        margin-left: 0;
+        padding: 16px 4px 16px 4px;
+      }
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .chat-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #1976d2;
+      background: #e3eaf6;
+    }
+    .chat-name {
+      font-size: 1.13em;
+      font-weight: 600;
+      color: #1976d2;
+    }
+    .messages {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(25,118,210,0.07);
+      padding: 18px 14px 12px 14px;
+      min-height: 320px;
+      max-height: 420px;
+      overflow-y: auto;
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      max-width: 80%;
+    }
+    .msg.me {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+    .msg-bubble {
+      background: #e3f0fd;
+      color: #1976d2;
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 1em;
+      margin-bottom: 2px;
+      word-break: break-word;
+      max-width: 340px;
+    }
+    .msg.me .msg-bubble {
+      background: #1976d2;
+      color: #fff;
+    }
+    .msg-time {
+      font-size: 0.88em;
+      color: #888;
+      margin-top: 1px;
+    }
+    .send-box {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .send-box input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cfd8dc;
+      font-size: 1em;
+      outline: none;
+    }
+    .send-box button {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .send-box button:hover {
+      background: #1256a3;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <h2>📚 Меню</h2>
+    <a href="home.html">🏠 Главная</a>
+    <a href="messenger.html">💬 Мессенджер</a>
+    <a href="feed.html">📰 Лента</a>
+    <a href="friends.html">👥 Друзья</a>
+    <a href="account.html">👤 Профиль</a>
+  </div>
+  <header>
+    <span class="menu-toggle" onclick="toggleSidebar()">
+      <i class="fas fa-bars"></i>
+    </span>
+    <span>СМП — Чат</span>
+    <a href="account.html"><i class="fas fa-user-circle"></i></a>
+  </header>
+  <div class="main-content">
+    <div class="chat-header" id="chatHeader"></div>
+    <div class="messages" id="messages"></div>
+    <form class="send-box" id="sendForm" autocomplete="off">
+      <input type="text" id="msgInput" placeholder="Введите сообщение..." autocomplete="off" />
+      <button type="submit"><i class="fas fa-paper-plane"></i> Отправить</button>
+    </form>
+  </div>
+  <script>
+    const SUPABASE_URL = "https://cwqizxpukzetxuzfwtlc.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3cWl6eHB1a3pldHh1emZ3dGxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwMTEyODUsImV4cCI6MjA2NTU4NzI4NX0.j6E3Upj6dJZantRZ4ScJO4WxH-GfFaPesN83uDvGi-g";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
+    }
+    // Получение параметра user из URL
+    function getCompanionId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('user');
+    }
+    let chatId = null;
+    let companionId = getCompanionId();
+    let userId = localStorage.getItem('user_id');
+    // Загрузка инфы о собеседнике и чата
+    async function loadChat() {
+      if (!userId || !companionId) return;
+      // Получаем чат
+      let { data: chats } = await supabase.from('chats').select('*').or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+      let chat = chats && chats.find(c => (c.user1_id === userId && c.user2_id === companionId) || (c.user2_id === userId && c.user1_id === companionId));
+      if (!chat) {
+        // Если чата нет — создаём
+        const { data: newChat } = await supabase.from('chats').insert([{ user1_id: userId, user2_id: companionId }]).select().single();
+        chat = newChat;
+      }
+      chatId = chat.id;
+      // Получаем инфу о собеседнике
+      const { data: user } = await supabase.from('users').select('id, name, surname').eq('id', companionId).single();
+      const { data: avatar } = await supabase.from('avatars').select('url').eq('user_id', companionId).eq('is_active', true).order('uploaded_at', { ascending: false }).limit(1).single();
+      document.getElementById('chatHeader').innerHTML = `
+        <img class="chat-avatar" src="${avatar && avatar.url ? avatar.url : 'https://via.placeholder.com/100'}" alt="avatar">
+        <div class="chat-name">${user ? user.name : ''} ${user ? user.surname : ''}</div>
+      `;
+      loadMessages();
+      subscribeToMessages();
+    }
+    // Загрузка сообщений
+    async function loadMessages() {
+      if (!chatId) return;
+      const { data: msgs } = await supabase.from('messages').select('*').eq('chat_id', chatId).order('created_at', { ascending: true });
+      renderMessages(msgs || []);
+    }
+    // Рендер сообщений
+    function renderMessages(msgs) {
+      const userId = localStorage.getItem('user_id');
+      const box = document.getElementById('messages');
+      box.innerHTML = '';
+      if (!msgs.length) {
+        box.innerHTML = '<div style="color:#888;text-align:center;margin-top:40px;">Нет сообщений. Начните общение!</div>';
+        return;
+      }
+      msgs.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'msg' + (m.sender_id === userId ? ' me' : '');
+        div.innerHTML = `<div class="msg-bubble">${escapeHtml(m.text)}</div><div class="msg-time">${formatTime(m.created_at)}</div>`;
+        box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+    // Отправка сообщения
+    document.getElementById('sendForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text || !chatId) return;
+      await supabase.from('messages').insert({ chat_id: chatId, sender_id: userId, text });
+      input.value = '';
+      loadMessages();
+    });
+    // Подписка на новые сообщения (реальное время)
+    function subscribeToMessages() {
+      if (!chatId) return;
+      supabase.channel('messages_' + chatId)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
+          loadMessages();
+        })
+        .subscribe();
+    }
+    // Вспомогательные функции
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, function (c) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c];
+      });
+    }
+    loadChat();
+  </script>
+</body>
+</html>
